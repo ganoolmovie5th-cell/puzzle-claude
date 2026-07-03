@@ -2,11 +2,15 @@
   "compilerOptions": {
     "strict": true,
     "target": "ESNext",
-    "lib": ["ESNext"],
+    "lib": [
+      "ESNext"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "moduleDetection": "force",
-    "customConditions": ["react-native"],
+    "customConditions": [
+      "react-native"
+    ],
     "jsx": "react-native",
     "noEmit": true,
     "isolatedModules": true,
@@ -16,9 +20,19 @@
     "allowJs": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": [
+        "src/*"
+      ]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "dist", "babel.config.js"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "babel.config.js"
+  ],
+  "extends": "expo/tsconfig.base"
 }

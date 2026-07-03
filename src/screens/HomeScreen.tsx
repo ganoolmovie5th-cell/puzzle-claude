@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
-  Image,
+  Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useGameStore } from '../store/gameStore';
@@ -13,7 +13,7 @@ import { Difficulty, GRID_SIZES } from '../core/types';
 import { prepareImage, sliceImage } from '../core/image';
 
 const DIFFICULTIES: Difficulty[] = ['3x3', '4x4', '5x5'];
-const IMAGE_SIZE = 900; // px for slicing
+const IMAGE_SIZE = 600; // px for slicing — smaller = faster slice
 
 interface Props {
   onStart: () => void;
@@ -54,6 +54,9 @@ export default function HomeScreen({ onStart }: Props) {
       const tiles = await sliceImage(prepared, gridSize, IMAGE_SIZE);
       startGame(prepared, tiles);
       onStart();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      Alert.alert('Gagal memproses gambar', msg);
     } finally {
       setLoading(false);
     }

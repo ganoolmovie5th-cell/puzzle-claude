@@ -2,7 +2,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 
 /**
  * Crop image into grid tiles. Returns array of URIs in row-major order.
- * The last URI (bottom-right) will be the "empty" tile.
+ * Uses Promise.all for parallel processing.
  */
 export async function sliceImage(
   uri: string,
@@ -11,13 +11,12 @@ export async function sliceImage(
 ): Promise<string[]> {
   const tileSize = Math.floor(displaySize / gridSize);
   const total = gridSize * gridSize;
-  const uris: string[] = [];
 
-  for (let i = 0; i < total; i++) {
+  // Process all tiles in parallel for speed
+  const promises = Array.from({ length: total }, (_, i) => {
     const row = Math.floor(i / gridSize);
     const col = i % gridSize;
-
-    const result = await ImageManipulator.manipulateAsync(
+    return ImageManipulator.manipulateAsync(
       uri,
       [
         {
@@ -29,16 +28,16 @@ export async function sliceImage(
           },
         },
       ],
-      { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
     );
-    uris.push(result.uri);
-  }
+  });
 
-  return uris;
+  const results = await Promise.all(promises);
+  return results.map((r) => r.uri);
 }
 
 /**
- * Resize image to a square before slicing (crop center)
+ * Resize image to a square before slicing
  */
 export async function prepareImage(uri: string, targetSize: number): Promise<string> {
   const result = await ImageManipulator.manipulateAsync(

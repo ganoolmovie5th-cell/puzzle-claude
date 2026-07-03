@@ -13,21 +13,29 @@ import * as ImagePicker from 'expo-image-picker';
 import { useGameStore } from '../store/gameStore';
 import { Difficulty, GRID_SIZES } from '../core/types';
 import { prepareImage, sliceImage } from '../core/image';
+import { darkTheme, lightTheme, Theme } from '../core/theme';
+import { getStars } from '../core/stars';
+import { hapticTap } from '../core/haptics';
 
-const DIFFICULTIES: { key: Difficulty; label: string; desc: string }[] = [
-  { key: '3x3', label: '3×3', desc: 'Mudah' },
-  { key: '4x4', label: '4×4', desc: 'Sedang' },
-  { key: '5x5', label: '5×5', desc: 'Sulit' },
+const DIFFICULTIES: { key: Difficulty; label: string; desc: string; icon: string }[] = [
+  { key: '3x3', label: '3×3', desc: 'Mudah', icon: '🟢' },
+  { key: '4x4', label: '4×4', desc: 'Sedang', icon: '🟡' },
+  { key: '5x5', label: '5×5', desc: 'Sulit', icon: '🔴' },
 ];
 const IMAGE_SIZE = 600;
 
 interface Props {
   onStart: () => void;
+  onHistory: () => void;
 }
 
-export default function HomeScreen({ onStart }: Props) {
-  const { difficulty, setDifficulty, startGame, bestTimes, history } = useGameStore();
+export default function HomeScreen({ onStart, onHistory }: Props) {
+  const {
+    difficulty, setDifficulty, startGame, bestTimes,
+    history, themeMode, toggleTheme, showNumbers, toggleNumbers,
+  } = useGameStore();
   const [loading, setLoading] = React.useState(false);
+  const t: Theme = themeMode === 'dark' ? darkTheme : lightTheme;
 
   const pickImage = async (source: 'camera' | 'gallery') => {
     let result: ImagePicker.ImagePickerResult;
@@ -75,16 +83,51 @@ export default function HomeScreen({ onStart }: Props) {
     return `${m}:${String(s % 60).padStart(2, '0')}`;
   };
 
+  const bestTime = bestTimes[difficulty];
+  const bestStars = bestTime !== null ? getStars(difficulty, bestTime) : 0;
   const gamesPlayed = history.length;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: t.bg }]}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Top bar */}
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            onPress={() => { hapticTap(); onHistory(); }}
+            style={[styles.iconBtn, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}
+            accessibilityRole="button"
+            accessibilityLabel="History"
+          >
+            <Text style={styles.iconBtnText}>📊</Text>
+          </TouchableOpacity>
+          <View style={styles.topBarRight}>
+            <TouchableOpacity
+              onPress={() => { hapticTap(); toggleNumbers(); }}
+              style={[
+                styles.iconBtn,
+                { backgroundColor: showNumbers ? t.accentSoft : t.surface, borderColor: showNumbers ? t.accent : t.surfaceBorder },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Toggle nomor tile"
+            >
+              <Text style={styles.iconBtnText}>🔢</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => { hapticTap(); toggleTheme(); }}
+              style={[styles.iconBtn, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}
+              accessibilityRole="button"
+              accessibilityLabel="Toggle tema"
+            >
+              <Text style={styles.iconBtnText}>{themeMode === 'dark' ? '☀️' : '🌙'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Hero */}
         <View style={styles.hero}>
           <Text style={styles.emoji}>🧩</Text>
-          <Text style={styles.title}>Foto Puzzle</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: t.text }]}>Foto Puzzle</Text>
+          <Text style={[styles.subtitle, { color: t.textMuted }]}>
             Ubah fotomu jadi puzzle seru!
           </Text>
         </View>
@@ -92,43 +135,64 @@ export default function HomeScreen({ onStart }: Props) {
         {/* Stats mini */}
         {gamesPlayed > 0 && (
           <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statNum}>{gamesPlayed}</Text>
-              <Text style={styles.statLabel}>Game Selesai</Text>
+            <View style={[styles.statCard, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}>
+              <Text style={[styles.statNum, { color: t.text }]}>{gamesPlayed}</Text>
+              <Text style={[styles.statLabel, { color: t.textDim }]}>Selesai</Text>
             </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNum}>{formatTime(bestTimes[difficulty])}</Text>
-              <Text style={styles.statLabel}>Best {difficulty}</Text>
+            <View style={[styles.statCard, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}>
+              <Text style={[styles.statNum, { color: t.text }]}>{formatTime(bestTime)}</Text>
+              <Text style={[styles.statLabel, { color: t.textDim }]}>Best {difficulty}</Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}>
+              <Text style={[styles.statNum, { color: t.accent }]}>{'⭐'.repeat(bestStars) || '-'}</Text>
+              <Text style={[styles.statLabel, { color: t.textDim }]}>Rating</Text>
             </View>
           </View>
         )}
 
-        {/* Difficulty selector */}
-        <Text style={styles.sectionTitle}>Tingkat Kesulitan</Text>
+        {/* Difficulty */}
+        <Text style={[styles.sectionTitle, { color: t.textDim }]}>Tingkat Kesulitan</Text>
         <View style={styles.diffRow}>
-          {DIFFICULTIES.map((d) => (
-            <TouchableOpacity
-              key={d.key}
-              style={[styles.diffBtn, d.key === difficulty && styles.diffBtnActive]}
-              onPress={() => setDifficulty(d.key)}
-              accessibilityRole="button"
-              accessibilityLabel={`Difficulty ${d.label} ${d.desc}`}
-            >
-              <Text style={[styles.diffLabel, d.key === difficulty && styles.diffLabelActive]}>
-                {d.label}
-              </Text>
-              <Text style={[styles.diffDesc, d.key === difficulty && styles.diffDescActive]}>
-                {d.desc}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {DIFFICULTIES.map((d) => {
+            const active = d.key === difficulty;
+            return (
+              <TouchableOpacity
+                key={d.key}
+                style={[
+                  styles.diffBtn,
+                  { backgroundColor: active ? t.accent : t.surface, borderColor: active ? t.accent : t.surfaceBorder },
+                ]}
+                onPress={() => { hapticTap(); setDifficulty(d.key); }}
+                accessibilityRole="button"
+                accessibilityLabel={`${d.label} ${d.desc}`}
+              >
+                <Text style={styles.diffIcon}>{d.icon}</Text>
+                <Text style={[styles.diffLabel, { color: active ? '#fff' : t.textMuted }]}>
+                  {d.label}
+                </Text>
+                <Text style={[styles.diffDesc, { color: active ? 'rgba(255,255,255,0.7)' : t.textDim }]}>
+                  {d.desc}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Star targets */}
+        <View style={[styles.targetCard, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}>
+          <Text style={[styles.targetTitle, { color: t.textMuted }]}>🎯 Target Waktu ({difficulty})</Text>
+          <View style={styles.targetRow}>
+            <Text style={[styles.targetItem, { color: t.textDim }]}>⭐ {'<'} {difficulty === '3x3' ? '2m' : difficulty === '4x4' ? '5m' : '10m'}</Text>
+            <Text style={[styles.targetItem, { color: t.textDim }]}>⭐⭐ {'<'} {difficulty === '3x3' ? '1m' : difficulty === '4x4' ? '2.5m' : '5m'}</Text>
+            <Text style={[styles.targetItem, { color: t.textDim }]}>⭐⭐⭐ {'<'} {difficulty === '3x3' ? '30d' : difficulty === '4x4' ? '1m' : '2m'}</Text>
+          </View>
         </View>
 
         {/* Action buttons */}
-        <Text style={styles.sectionTitle}>Pilih Sumber Foto</Text>
+        <Text style={[styles.sectionTitle, { color: t.textDim }]}>Pilih Sumber Foto</Text>
 
         <TouchableOpacity
-          style={[styles.btn, styles.btnPrimary]}
+          style={[styles.btn, { backgroundColor: t.accent }]}
           onPress={() => pickImage('camera')}
           disabled={loading}
           accessibilityRole="button"
@@ -142,7 +206,7 @@ export default function HomeScreen({ onStart }: Props) {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.btn, styles.btnOutline]}
+          style={[styles.btn, { backgroundColor: t.surface, borderWidth: 1.5, borderColor: t.accent }]}
           onPress={() => pickImage('gallery')}
           disabled={loading}
           accessibilityRole="button"
@@ -150,16 +214,15 @@ export default function HomeScreen({ onStart }: Props) {
         >
           <Text style={styles.btnIcon}>🖼️</Text>
           <View style={styles.btnTextWrap}>
-            <Text style={styles.btnTitle}>Dari Galeri</Text>
-            <Text style={styles.btnDesc}>Pilih foto yang sudah ada</Text>
+            <Text style={[styles.btnTitle, { color: t.text }]}>Dari Galeri</Text>
+            <Text style={[styles.btnDesc, { color: t.textMuted }]}>Pilih foto yang sudah ada</Text>
           </View>
         </TouchableOpacity>
 
-        {/* Loading overlay */}
         {loading && (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="small" color="#e94560" />
-            <Text style={styles.loadingText}>Memotong gambar...</Text>
+            <ActivityIndicator size="small" color={t.accent} />
+            <Text style={[styles.loadingText, { color: t.accent }]}>Memotong gambar...</Text>
           </View>
         )}
       </ScrollView>
@@ -168,73 +231,35 @@ export default function HomeScreen({ onStart }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0f1a' },
-  scroll: { padding: 24, paddingBottom: 48 },
-  hero: { alignItems: 'center', marginBottom: 28 },
-  emoji: { fontSize: 56, marginBottom: 8 },
-  title: { fontSize: 34, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
-  subtitle: { fontSize: 16, color: '#8888a0', marginTop: 6, textAlign: 'center' },
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 28 },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#2a2a4a',
-  },
-  statNum: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  statLabel: { fontSize: 12, color: '#6a6a8a', marginTop: 4 },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#6a6a8a',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 12,
-  },
-  diffRow: { flexDirection: 'row', gap: 10, marginBottom: 28 },
-  diffBtn: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: '#1a1a2e',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#2a2a4a',
-  },
-  diffBtnActive: {
-    backgroundColor: '#e94560',
-    borderColor: '#e94560',
-  },
-  diffLabel: { fontSize: 20, fontWeight: '800', color: '#6a6a8a' },
-  diffLabelActive: { color: '#fff' },
-  diffDesc: { fontSize: 11, color: '#555', marginTop: 4 },
-  diffDescActive: { color: 'rgba(255,255,255,0.7)' },
-  btn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 18,
-    borderRadius: 16,
-    marginBottom: 12,
-  },
-  btnPrimary: { backgroundColor: '#e94560' },
-  btnOutline: {
-    backgroundColor: '#1a1a2e',
-    borderWidth: 1.5,
-    borderColor: '#e94560',
-  },
-  btnIcon: { fontSize: 28, marginRight: 14 },
+  container: { flex: 1 },
+  scroll: { padding: 20, paddingBottom: 48 },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  topBarRight: { flexDirection: 'row', gap: 8 },
+  iconBtn: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
+  iconBtnText: { fontSize: 18 },
+  hero: { alignItems: 'center', marginBottom: 24 },
+  emoji: { fontSize: 52, marginBottom: 6 },
+  title: { fontSize: 32, fontWeight: '800', letterSpacing: -0.5 },
+  subtitle: { fontSize: 15, marginTop: 4, textAlign: 'center' },
+  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
+  statCard: { flex: 1, borderRadius: 14, padding: 14, alignItems: 'center', borderWidth: 1 },
+  statNum: { fontSize: 18, fontWeight: '800' },
+  statLabel: { fontSize: 11, marginTop: 3 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 },
+  diffRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  diffBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', borderWidth: 1.5 },
+  diffIcon: { fontSize: 16, marginBottom: 4 },
+  diffLabel: { fontSize: 18, fontWeight: '800' },
+  diffDesc: { fontSize: 11, marginTop: 2 },
+  targetCard: { borderRadius: 14, padding: 14, marginBottom: 24, borderWidth: 1 },
+  targetTitle: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
+  targetRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  targetItem: { fontSize: 11 },
+  btn: { flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 16, marginBottom: 12 },
+  btnIcon: { fontSize: 26, marginRight: 14 },
   btnTextWrap: { flex: 1 },
   btnTitle: { fontSize: 16, fontWeight: '700', color: '#fff' },
   btnDesc: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
-  loadingWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    marginTop: 16,
-  },
-  loadingText: { color: '#e94560', fontSize: 14 },
+  loadingWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 16 },
+  loadingText: { fontSize: 14 },
 });

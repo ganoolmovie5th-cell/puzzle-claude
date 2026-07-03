@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,12 @@ import {
   Animated,
 } from 'react-native';
 import { useGameStore } from '../store/gameStore';
+import { darkTheme, lightTheme, Theme } from '../core/theme';
+import { getStars } from '../core/stars';
+import { hapticTap, hapticSuccess } from '../core/haptics';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const BOARD_PADDING = 20;
+const BOARD_PADDING = 16;
 const BOARD_SIZE = SCREEN_WIDTH - BOARD_PADDING * 2;
 
 interface Props {
@@ -21,10 +24,13 @@ interface Props {
 }
 
 export default function PuzzleScreen({ onBack }: Props) {
-  const { puzzle, tileUris, imageUri, difficulty, tap, reset } = useGameStore();
+  const { puzzle, tileUris, imageUri, difficulty, tap, reset, themeMode, showNumbers } = useGameStore();
   const [elapsed, setElapsed] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
-  const [confetti] = useState(new Animated.Value(0));
+  const [showHint, setShowHint] = useState(false);
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+
+  const t: Theme = themeMode === 'dark' ? darkTheme : lightTheme;
 
   useEffect(() => {
     if (!puzzle || puzzle.solved) return;
@@ -36,14 +42,15 @@ export default function PuzzleScreen({ onBack }: Props) {
 
   useEffect(() => {
     if (puzzle?.solved) {
-      Animated.spring(confetti, {
+      hapticSuccess();
+      Animated.spring(scaleAnim, {
         toValue: 1,
         useNativeDriver: true,
         tension: 50,
         friction: 5,
       }).start();
     } else {
-      confetti.setValue(0);
+      scaleAnim.setValue(0);
     }
   }, [puzzle?.solved]);
 
@@ -52,6 +59,24 @@ export default function PuzzleScreen({ onBack }: Props) {
   const { gridSize, tiles, moves, solved } = puzzle;
   const tileSize = Math.floor(BOARD_SIZE / gridSize);
   const emptyId = gridSize * gridSize - 1;
+  const emptyTile = tiles[puzzle.emptyIndex];
+
+  // Find movable tiles (adjacent to empty)
+  const movableTiles = new Set(
+    tiles
+      .filter((tile) => {
+        if (tile.id === emptyId) return false;
+        const dr = Math.abs(tile.row - emptyTile.row);
+        const dc = Math.abs(tile.col - emptyTile.col);
+        return (dr === 1 && dc === 0) || (dr === 0 && dc === 1);
+      })
+      .map((tile) => tile.id)
+  );
+
+  const handleTap = (row: number, col: number) => {
+    const moved = tap(row, col);
+    if (moved) hapticTap();
+  };
 
   const formatTime = (ms: number) => {
     const s = Math.floor(ms / 1000);
@@ -59,50 +84,51 @@ export default function PuzzleScreen({ onBack }: Props) {
     return `${m}:${String(s % 60).padStart(2, '0')}`;
   };
 
+  const stars = solved ? getStars(difficulty, elapsed) : 0;
   const diffLabel = difficulty.replace('x', '×');
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: t.bg }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={onBack}
-          style={styles.backWrap}
+          style={[styles.circleBtn, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}
           accessibilityRole="button"
           accessibilityLabel="Kembali"
         >
-          <Text style={styles.backIcon}>←</Text>
+          <Text style={[styles.circleBtnText, { color: t.text }]}>←</Text>
         </TouchableOpacity>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{diffLabel}</Text>
+        <View style={[styles.badge, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}>
+          <Text style={[styles.badgeText, { color: t.accent }]}>{diffLabel}</Text>
         </View>
         <TouchableOpacity
           onPress={() => setShowPreview(true)}
-          style={styles.previewBtn}
+          style={[styles.circleBtn, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}
           accessibilityRole="button"
           accessibilityLabel="Lihat gambar asli"
         >
-          <Text style={styles.previewIcon}>👁</Text>
+          <Text style={styles.circleBtnText}>👁</Text>
         </TouchableOpacity>
       </View>
 
       {/* Stats bar */}
       <View style={styles.statsBar}>
-        <View style={styles.statItem}>
-          <Text style={styles.statIcon}>⏱</Text>
-          <Text style={styles.statValue}>{formatTime(elapsed)}</Text>
+        <View style={[styles.statChip, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}>
+          <Text style={{ fontSize: 14 }}>⏱</Text>
+          <Text style={[styles.statValue, { color: t.text }]}>{formatTime(elapsed)}</Text>
         </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statIcon}>👆</Text>
-          <Text style={styles.statValue}>{moves}</Text>
+        <View style={[styles.statChip, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}>
+          <Text style={{ fontSize: 14 }}>👆</Text>
+          <Text style={[styles.statValue, { color: t.text }]}>{moves}</Text>
         </View>
       </View>
 
       {/* Board */}
-      <View style={[styles.board, { width: BOARD_SIZE, height: BOARD_SIZE }]}>
+      <View style={[styles.board, { width: BOARD_SIZE, height: BOARD_SIZE, backgroundColor: t.surface, borderColor: t.surfaceBorder }]}>
         {tiles.map((tile) => {
           if (tile.id === emptyId) return null;
+          const isMovable = movableTiles.has(tile.id);
           return (
             <TouchableOpacity
               key={tile.id}
@@ -114,16 +140,27 @@ export default function PuzzleScreen({ onBack }: Props) {
                   left: tile.col * tileSize + 1.5,
                   top: tile.row * tileSize + 1.5,
                 },
+                showHint && isMovable && styles.tileHint,
               ]}
-              onPress={() => tap(tile.row, tile.col)}
+              onPress={() => handleTap(tile.row, tile.col)}
               activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityLabel={`Tile ${tile.id + 1}`}
             >
               <Image
                 source={{ uri: tileUris[tile.id] }}
-                style={{ width: tileSize - 3, height: tileSize - 3, borderRadius: 6 }}
+                style={{ width: tileSize - 3, height: tileSize - 3, borderRadius: 4 }}
               />
+              {showNumbers && (
+                <View style={styles.numberBadge}>
+                  <Text style={styles.numberText}>{tile.id + 1}</Text>
+                </View>
+              )}
+              {showHint && isMovable && (
+                <View style={styles.hintOverlay}>
+                  <Text style={styles.hintArrow}>↕</Text>
+                </View>
+              )}
             </TouchableOpacity>
           );
         })}
@@ -132,45 +169,60 @@ export default function PuzzleScreen({ onBack }: Props) {
       {/* Bottom actions */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={reset}
+          style={[styles.actionBtn, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}
+          onPress={() => { hapticTap(); setShowHint(!showHint); }}
+          accessibilityRole="button"
+          accessibilityLabel="Hint"
+        >
+          <Text style={styles.actionIcon}>💡</Text>
+          <Text style={[styles.actionLabel, { color: showHint ? t.accent : t.text }]}>Hint</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}
+          onPress={() => { hapticTap(); reset(); }}
           accessibilityRole="button"
           accessibilityLabel="Acak ulang"
         >
           <Text style={styles.actionIcon}>🔀</Text>
-          <Text style={styles.actionLabel}>Acak Ulang</Text>
+          <Text style={[styles.actionLabel, { color: t.text }]}>Acak</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.actionBtn}
+          style={[styles.actionBtn, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}
           onPress={onBack}
           accessibilityRole="button"
           accessibilityLabel="Ganti foto"
         >
           <Text style={styles.actionIcon}>📷</Text>
-          <Text style={styles.actionLabel}>Ganti Foto</Text>
+          <Text style={[styles.actionLabel, { color: t.text }]}>Ganti</Text>
         </TouchableOpacity>
       </View>
 
       {/* Solved modal */}
       <Modal visible={solved} transparent animationType="fade">
-        <View style={styles.overlay}>
+        <View style={[styles.overlay, { backgroundColor: t.overlay }]}>
           <Animated.View
             style={[
               styles.modal,
-              { transform: [{ scale: confetti.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }] },
+              { backgroundColor: t.surface, borderColor: t.surfaceBorder },
+              { transform: [{ scale: scaleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }] },
             ]}
           >
             <Text style={styles.modalEmoji}>🎉</Text>
-            <Text style={styles.modalTitle}>Puzzle Selesai!</Text>
+            <Text style={[styles.modalTitle, { color: t.text }]}>Puzzle Selesai!</Text>
+
+            {/* Stars */}
+            <Text style={styles.starsDisplay}>
+              {'⭐'.repeat(stars)}{'☆'.repeat(3 - stars)}
+            </Text>
 
             <View style={styles.modalStatsRow}>
-              <View style={styles.modalStatCard}>
-                <Text style={styles.modalStatNum}>{formatTime(elapsed)}</Text>
-                <Text style={styles.modalStatLabel}>Waktu</Text>
+              <View style={[styles.modalStatCard, { backgroundColor: t.bg }]}>
+                <Text style={[styles.modalStatNum, { color: t.accent }]}>{formatTime(elapsed)}</Text>
+                <Text style={[styles.modalStatLabel, { color: t.textDim }]}>Waktu</Text>
               </View>
-              <View style={styles.modalStatCard}>
-                <Text style={styles.modalStatNum}>{moves}</Text>
-                <Text style={styles.modalStatLabel}>Langkah</Text>
+              <View style={[styles.modalStatCard, { backgroundColor: t.bg }]}>
+                <Text style={[styles.modalStatNum, { color: t.accent }]}>{moves}</Text>
+                <Text style={[styles.modalStatLabel, { color: t.textDim }]}>Langkah</Text>
               </View>
             </View>
 
@@ -178,7 +230,7 @@ export default function PuzzleScreen({ onBack }: Props) {
               <Image source={{ uri: imageUri }} style={styles.modalImage} />
             )}
 
-            <TouchableOpacity style={styles.modalBtn} onPress={onBack}>
+            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: t.accent }]} onPress={onBack}>
               <Text style={styles.modalBtnText}>🎮 Main Lagi</Text>
             </TouchableOpacity>
           </Animated.View>
@@ -188,7 +240,7 @@ export default function PuzzleScreen({ onBack }: Props) {
       {/* Preview modal */}
       <Modal visible={showPreview} transparent animationType="fade">
         <TouchableOpacity
-          style={styles.overlay}
+          style={[styles.overlay, { backgroundColor: t.overlay }]}
           activeOpacity={1}
           onPress={() => setShowPreview(false)}
         >
@@ -197,10 +249,10 @@ export default function PuzzleScreen({ onBack }: Props) {
             {imageUri && (
               <Image
                 source={{ uri: imageUri }}
-                style={{ width: BOARD_SIZE - 20, height: BOARD_SIZE - 20, borderRadius: 16 }}
+                style={{ width: BOARD_SIZE - 24, height: BOARD_SIZE - 24, borderRadius: 16 }}
               />
             )}
-            <Text style={styles.previewHint}>Ketuk di mana saja untuk tutup</Text>
+            <Text style={[styles.previewHint, { color: t.textDim }]}>Ketuk untuk tutup</Text>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -209,128 +261,67 @@ export default function PuzzleScreen({ onBack }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0f1a' },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
-  backWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1a1a2e',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backIcon: { fontSize: 20, color: '#fff' },
-  badge: {
-    backgroundColor: '#2a2a4a',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  badgeText: { color: '#e94560', fontSize: 14, fontWeight: '700' },
-  previewBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1a1a2e',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  previewIcon: { fontSize: 18 },
-  statsBar: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 20,
-  },
-  statItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statIcon: { fontSize: 16 },
-  statValue: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  statDivider: { width: 1, height: 20, backgroundColor: '#2a2a4a' },
-  board: {
-    alignSelf: 'center',
-    backgroundColor: '#1a1a2e',
-    borderRadius: 16,
-    overflow: 'hidden',
-    position: 'relative',
-    borderWidth: 2,
-    borderColor: '#2a2a4a',
-  },
-  tile: {
+  circleBtn: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
+  circleBtnText: { fontSize: 18 },
+  badge: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
+  badgeText: { fontSize: 14, fontWeight: '700' },
+  statsBar: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginBottom: 12 },
+  statChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
+  statValue: { fontSize: 16, fontWeight: '700' },
+  board: { alignSelf: 'center', borderRadius: 14, overflow: 'hidden', position: 'relative', borderWidth: 2 },
+  tile: { position: 'absolute', borderRadius: 4, overflow: 'hidden' },
+  tileHint: { borderWidth: 2, borderColor: '#4ade80' },
+  numberBadge: {
     position: 'absolute',
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  bottomBar: {
-    flexDirection: 'row',
+    top: 3,
+    left: 3,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 8,
+    width: 20,
+    height: 20,
     justifyContent: 'center',
-    gap: 16,
-    marginTop: 24,
-    paddingHorizontal: 20,
+    alignItems: 'center',
   },
+  numberText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  hintOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(74,222,128,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  hintArrow: { fontSize: 20, color: '#4ade80' },
+  bottomBar: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginTop: 20, paddingHorizontal: 16 },
   actionBtn: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    backgroundColor: '#1a1a2e',
+    paddingVertical: 12,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#2a2a4a',
+    gap: 4,
   },
-  actionIcon: { fontSize: 16 },
-  actionLabel: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modal: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: 24,
-    padding: 32,
-    alignItems: 'center',
-    width: '85%',
-    borderWidth: 1,
-    borderColor: '#2a2a4a',
-  },
-  modalEmoji: { fontSize: 48, marginBottom: 8 },
-  modalTitle: { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 20 },
-  modalStatsRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  modalStatCard: {
-    flex: 1,
-    backgroundColor: '#0f0f1a',
-    borderRadius: 14,
-    padding: 14,
-    alignItems: 'center',
-  },
-  modalStatNum: { fontSize: 22, fontWeight: '800', color: '#e94560' },
-  modalStatLabel: { fontSize: 12, color: '#6a6a8a', marginTop: 4 },
-  modalImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 14,
-    marginBottom: 20,
-  },
-  modalBtn: {
-    backgroundColor: '#e94560',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 14,
-    width: '100%',
-    alignItems: 'center',
-  },
+  actionIcon: { fontSize: 18 },
+  actionLabel: { fontSize: 12, fontWeight: '600' },
+  overlay: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  modal: { borderRadius: 24, padding: 28, alignItems: 'center', width: '85%', borderWidth: 1 },
+  modalEmoji: { fontSize: 44, marginBottom: 4 },
+  modalTitle: { fontSize: 24, fontWeight: '800', marginBottom: 8 },
+  starsDisplay: { fontSize: 28, marginBottom: 16 },
+  modalStatsRow: { flexDirection: 'row', gap: 12, marginBottom: 16, width: '100%' },
+  modalStatCard: { flex: 1, borderRadius: 12, padding: 12, alignItems: 'center' },
+  modalStatNum: { fontSize: 20, fontWeight: '800' },
+  modalStatLabel: { fontSize: 11, marginTop: 3 },
+  modalImage: { width: 100, height: 100, borderRadius: 12, marginBottom: 16 },
+  modalBtn: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, width: '100%', alignItems: 'center' },
   modalBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   previewContainer: { alignItems: 'center' },
-  previewTitle: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 16 },
-  previewHint: { color: '#6a6a8a', marginTop: 16, fontSize: 13 },
+  previewTitle: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 14 },
+  previewHint: { marginTop: 14, fontSize: 13 },
 });

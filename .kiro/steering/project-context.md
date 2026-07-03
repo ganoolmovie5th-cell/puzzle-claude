@@ -26,7 +26,8 @@ Game puzzle sliding mobile. Pengguna ambil foto dari kamera atau galeri, gambar 
 | Framework | React Native 0.79 + Expo SDK 54 |
 | Bahasa | TypeScript strict |
 | State | Zustand 5 + persist (AsyncStorage) |
-| Image | expo-image-picker + expo-image-manipulator |
+| Image | expo-image-picker + expo-image-manipulator@14 |
+| Haptics | expo-haptics |
 | Gesture | react-native-gesture-handler |
 
 ---
@@ -35,18 +36,22 @@ Game puzzle sliding mobile. Pengguna ambil foto dari kamera atau galeri, gambar 
 
 ```
 puzzle-claude/
-├── App.tsx              # Root: navigasi sederhana home ↔ puzzle
+├── App.tsx              # Root: navigasi home ↔ puzzle ↔ history
 ├── index.ts             # registerRootComponent
 ├── src/
 │   ├── core/
 │   │   ├── types.ts     # Difficulty, Tile, PuzzleState, HistoryEntry
 │   │   ├── puzzle.ts    # createSolvedPuzzle, shufflePuzzle, moveTile, isSolved
-│   │   └── image.ts     # prepareImage (resize square), sliceImage (crop grid)
+│   │   ├── image.ts     # prepareImage (resize square), sliceImage (crop grid parallel)
+│   │   ├── haptics.ts   # hapticTap, hapticSuccess, hapticError (expo-haptics)
+│   │   ├── theme.ts     # Theme type, darkTheme, lightTheme
+│   │   └── stars.ts     # getStars (timer challenge rating)
 │   ├── store/
-│   │   └── gameStore.ts # Zustand: puzzle state, history, bestTimes
+│   │   └── gameStore.ts # Zustand: puzzle state, history, bestTimes, theme, showNumbers
 │   └── screens/
-│       ├── HomeScreen.tsx   # Pilih difficulty + kamera/galeri
-│       └── PuzzleScreen.tsx # Gameplay: board, timer, moves, preview, solved modal
+│       ├── HomeScreen.tsx    # Pilih difficulty + kamera/galeri + settings
+│       ├── PuzzleScreen.tsx  # Gameplay: board, timer, moves, hint, numbers, preview
+│       └── HistoryScreen.tsx # Riwayat game + best times
 ├── assets/              # Icon & splash placeholders
 ├── app.json
 ├── babel.config.js
@@ -59,15 +64,15 @@ puzzle-claude/
 ## Fitur
 
 ### Difficulty Scaling
-- **3×3** (9 tiles, 1 kosong) — Easy
-- **4×4** (16 tiles, 1 kosong) — Medium
-- **5×5** (25 tiles, 1 kosong) — Hard
+- **3×3** (9 tiles, 1 kosong) — Mudah
+- **4×4** (16 tiles, 1 kosong) — Sedang
+- **5×5** (25 tiles, 1 kosong) — Sulit
 - Shuffle dilakukan via random valid moves (menjamin solvable)
 
 ### Image Source
 - 📷 Kamera (expo-image-picker, aspect 1:1, allowsEditing)
 - 🖼️ Galeri (expo-image-picker, aspect 1:1, allowsEditing)
-- Gambar di-resize ke 900×900 lalu di-crop per tile
+- Gambar di-resize ke 600×600 lalu di-crop per tile (parallel Promise.all)
 
 ### Gameplay
 - Tap tile yang bersebelahan dengan slot kosong untuk geser
@@ -75,11 +80,33 @@ puzzle-claude/
 - Move counter
 - Preview mode (lihat gambar utuh sebagai hint)
 - Acak ulang (shuffle ulang tanpa ganti gambar)
+- **Haptic feedback** — getaran ringan saat geser, getaran sukses saat selesai (expo-haptics)
+- **Move hint** — highlight tile yang bisa digeser (tombol 💡)
+- **Numbered tiles** — angka kecil di pojok tiap tile untuk orientasi (toggle 🔢)
+- **Timer challenge** — bintang 1-3 berdasarkan waktu penyelesaian per difficulty
+
+### Timer Challenge (Star Rating)
+| Difficulty | ⭐ | ⭐⭐ | ⭐⭐⭐ |
+|---|---|---|---|
+| 3×3 | < 2 menit | < 1 menit | < 30 detik |
+| 4×4 | < 5 menit | < 2.5 menit | < 1 menit |
+| 5×5 | < 10 menit | < 5 menit | < 2 menit |
+
+### History Screen
+- Riwayat 50 game terakhir dengan thumbnail, difficulty, waktu, langkah, dan stars
+- Summary best time per difficulty di bagian atas
+
+### Dark / Light Theme
+- Toggle tema dari HomeScreen (tombol ☀️/🌙)
+- Warna mengikuti `src/core/theme.ts` (darkTheme / lightTheme)
+- Preferensi tersimpan di AsyncStorage
 
 ### Persistence (AsyncStorage via Zustand persist)
 - Best time per difficulty
 - History 50 game terakhir
 - Difficulty preference
+- Theme mode (dark/light)
+- Show numbers toggle
 
 ---
 
@@ -115,7 +142,5 @@ Type: `feat` `fix` `refactor` `chore` `docs`
 ## Roadmap
 
 - [ ] Animasi slide tile (Animated API)
-- [ ] Leaderboard lokal (history screen)
 - [ ] Share puzzle ke teman
-- [ ] Haptic feedback saat tile bergerak
-- [ ] Sound effects
+- [ ] Daily puzzle (foto sample baru setiap hari)

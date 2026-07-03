@@ -4,12 +4,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Difficulty, GRID_SIZES, HistoryEntry, PuzzleState } from '../core/types';
 import { shufflePuzzle, moveTile } from '../core/puzzle';
 
+type ThemeMode = 'dark' | 'light';
+
 interface GameStore {
   // Current game
   puzzle: PuzzleState | null;
   difficulty: Difficulty;
   imageUri: string | null;
   tileUris: string[];
+
+  // Settings
+  themeMode: ThemeMode;
+  showNumbers: boolean;
 
   // History
   history: HistoryEntry[];
@@ -18,9 +24,11 @@ interface GameStore {
   // Actions
   setDifficulty: (d: Difficulty) => void;
   startGame: (imageUri: string, tileUris: string[]) => void;
-  tap: (row: number, col: number) => void;
+  tap: (row: number, col: number) => boolean; // returns true if moved
   reset: () => void;
   addHistory: (entry: HistoryEntry) => void;
+  toggleTheme: () => void;
+  toggleNumbers: () => void;
 }
 
 export const useGameStore = create<GameStore>()(
@@ -30,6 +38,8 @@ export const useGameStore = create<GameStore>()(
       difficulty: '3x3',
       imageUri: null,
       tileUris: [],
+      themeMode: 'dark',
+      showNumbers: false,
       history: [],
       bestTimes: { '3x3': null, '4x4': null, '5x5': null },
 
@@ -43,22 +53,23 @@ export const useGameStore = create<GameStore>()(
 
       tap: (row, col) => {
         const { puzzle } = get();
-        if (!puzzle || puzzle.solved) return;
+        if (!puzzle || puzzle.solved) return false;
         const next = moveTile(puzzle, row, col);
-        if (next) {
-          set({ puzzle: next });
-          if (next.solved) {
-            const timeMs = Date.now() - next.startTime;
-            const { difficulty, imageUri } = get();
-            get().addHistory({
-              imageUri: imageUri ?? '',
-              difficulty,
-              moves: next.moves,
-              timeMs,
-              date: Date.now(),
-            });
-          }
+        if (!next) return false;
+
+        set({ puzzle: next });
+        if (next.solved) {
+          const timeMs = Date.now() - next.startTime;
+          const { difficulty, imageUri } = get();
+          get().addHistory({
+            imageUri: imageUri ?? '',
+            difficulty,
+            moves: next.moves,
+            timeMs,
+            date: Date.now(),
+          });
         }
+        return true;
       },
 
       reset: () => {
@@ -78,6 +89,14 @@ export const useGameStore = create<GameStore>()(
           bestTimes: { ...bestTimes, [entry.difficulty]: newBest },
         });
       },
+
+      toggleTheme: () => {
+        set((s) => ({ themeMode: s.themeMode === 'dark' ? 'light' : 'dark' }));
+      },
+
+      toggleNumbers: () => {
+        set((s) => ({ showNumbers: !s.showNumbers }));
+      },
     }),
     {
       name: 'puzzle-game-store',
@@ -86,6 +105,8 @@ export const useGameStore = create<GameStore>()(
         history: state.history,
         bestTimes: state.bestTimes,
         difficulty: state.difficulty,
+        themeMode: state.themeMode,
+        showNumbers: state.showNumbers,
       }),
     }
   )

@@ -1,0 +1,28 @@
+{
+  "name": "puzzle-claude",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "npx expo start",
+    "android": "npx expo start --android",
+    "ios": "npx expo start --ios",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "2.1.2",
+    "babel-preset-expo": "~54.0.10",
+    "expo": "~54.0.0",
+    "expo-image-manipulator": "~12.0.5",
+    "expo-image-picker": "~16.0.6",
+    "expo-status-bar": "~2.2.3",
+    "react": "19.0.0",
+    "react-native": "0.79.2",
+    "react-native-gesture-handler": "~2.24.0",
+    "zustand": "^5.0.5"
+  },
+  "devDependencies": {
+    "@types/react": "~19.0.10",
+    "typescript": "~5.8.3"
+  },
+  "private": true
+}

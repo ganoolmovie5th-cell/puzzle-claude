@@ -9,11 +9,13 @@ import {
   Dimensions,
   Modal,
   Animated,
+  Pressable,
 } from 'react-native';
 import { useGameStore } from '../store/gameStore';
 import { darkTheme, lightTheme, Theme } from '../core/theme';
 import { getStars } from '../core/stars';
 import { hapticTap, hapticSuccess } from '../core/haptics';
+import { ACHIEVEMENTS } from '../core/achievements';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const BOARD_PADDING = 16;
@@ -24,11 +26,13 @@ interface Props {
 }
 
 export default function PuzzleScreen({ onBack }: Props) {
-  const { puzzle, tileUris, imageUri, difficulty, tap, reset, themeMode, showNumbers } = useGameStore();
+  const { puzzle, tileUris, imageUri, difficulty, tap, reset, themeMode, showNumbers, newAchievement, dismissAchievement } = useGameStore();
   const [elapsed, setElapsed] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const scaleAnim = useRef(new Animated.Value(0)).current;
+  // Animated positions per tile (keyed by tile id)
+  const tileAnims = useRef<Record<number, { x: Animated.Value; y: Animated.Value }>>({}).current;
 
   const t: Theme = themeMode === 'dark' ? darkTheme : lightTheme;
 
@@ -129,39 +133,56 @@ export default function PuzzleScreen({ onBack }: Props) {
         {tiles.map((tile) => {
           if (tile.id === emptyId) return null;
           const isMovable = movableTiles.has(tile.id);
+          // Initialize or update animated values
+          if (!tileAnims[tile.id]) {
+            tileAnims[tile.id] = {
+              x: new Animated.Value(tile.col * tileSize + 1.5),
+              y: new Animated.Value(tile.row * tileSize + 1.5),
+            };
+          } else {
+            // Animate slide to new position
+            Animated.parallel([
+              Animated.spring(tileAnims[tile.id].x, { toValue: tile.col * tileSize + 1.5, useNativeDriver: false, tension: 180, friction: 15 }),
+              Animated.spring(tileAnims[tile.id].y, { toValue: tile.row * tileSize + 1.5, useNativeDriver: false, tension: 180, friction: 15 }),
+            ]).start();
+          }
           return (
-            <TouchableOpacity
+            <Animated.View
               key={tile.id}
               style={[
                 styles.tile,
                 {
                   width: tileSize - 3,
                   height: tileSize - 3,
-                  left: tile.col * tileSize + 1.5,
-                  top: tile.row * tileSize + 1.5,
+                  left: tileAnims[tile.id].x,
+                  top: tileAnims[tile.id].y,
                 },
                 showHint && isMovable && styles.tileHint,
               ]}
-              onPress={() => handleTap(tile.row, tile.col)}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel={`Tile ${tile.id + 1}`}
             >
-              <Image
-                source={{ uri: tileUris[tile.id] }}
-                style={{ width: tileSize - 3, height: tileSize - 3, borderRadius: 4 }}
-              />
-              {showNumbers && (
-                <View style={styles.numberBadge}>
-                  <Text style={styles.numberText}>{tile.id + 1}</Text>
-                </View>
-              )}
-              {showHint && isMovable && (
-                <View style={styles.hintOverlay}>
-                  <Text style={styles.hintArrow}>↕</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleTap(tile.row, tile.col)}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={`Tile ${tile.id + 1}`}
+                style={{ width: '100%', height: '100%' }}
+              >
+                <Image
+                  source={{ uri: tileUris[tile.id] }}
+                  style={{ width: tileSize - 3, height: tileSize - 3, borderRadius: 4 }}
+                />
+                {showNumbers && (
+                  <View style={styles.numberBadge}>
+                    <Text style={styles.numberText}>{tile.id + 1}</Text>
+                  </View>
+                )}
+                {showHint && isMovable && (
+                  <View style={styles.hintOverlay}>
+                    <Text style={styles.hintArrow}>↕</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
           );
         })}
       </View>
@@ -256,6 +277,21 @@ export default function PuzzleScreen({ onBack }: Props) {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Achievement popup */}
+      {newAchievement && (() => {
+        const ach = ACHIEVEMENTS.find((a) => a.id === newAchievement);
+        if (!ach) return null;
+        return (
+          <Pressable style={styles.achievementPopup} onPress={dismissAchievement}>
+            <Text style={styles.achievementIcon}>{ach.icon}</Text>
+            <View>
+              <Text style={styles.achievementTitle}>🏆 {ach.name}</Text>
+              <Text style={styles.achievementDesc}>{ach.description}</Text>
+            </View>
+          </Pressable>
+        );
+      })()}
     </SafeAreaView>
   );
 }
@@ -324,4 +360,25 @@ const styles = StyleSheet.create({
   previewContainer: { alignItems: 'center' },
   previewTitle: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 14 },
   previewHint: { marginTop: 14, fontSize: 13 },
+  achievementPopup: {
+    position: 'absolute',
+    top: 80,
+    left: 20,
+    right: 20,
+    backgroundColor: '#fef3c7',
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 200,
+  },
+  achievementIcon: { fontSize: 32 },
+  achievementTitle: { fontSize: 15, fontWeight: '800', color: '#92400e' },
+  achievementDesc: { fontSize: 12, color: '#78350f', marginTop: 2 },
 });

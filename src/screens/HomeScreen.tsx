@@ -21,6 +21,8 @@ const DIFFICULTIES: { key: Difficulty; label: string; desc: string; icon: string
   { key: '3x3', label: '3×3', desc: 'Mudah', icon: '🟢' },
   { key: '4x4', label: '4×4', desc: 'Sedang', icon: '🟡' },
   { key: '5x5', label: '5×5', desc: 'Sulit', icon: '🔴' },
+  { key: '6x6', label: '6×6', desc: 'Expert', icon: '🟣' },
+  { key: '7x7', label: '7×7', desc: 'Insane', icon: '⚫' },
 ];
 const IMAGE_SIZE = 600;
 
@@ -182,9 +184,9 @@ export default function HomeScreen({ onStart, onHistory }: Props) {
         <View style={[styles.targetCard, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}>
           <Text style={[styles.targetTitle, { color: t.textMuted }]}>🎯 Target Waktu ({difficulty})</Text>
           <View style={styles.targetRow}>
-            <Text style={[styles.targetItem, { color: t.textDim }]}>⭐ {'<'} {difficulty === '3x3' ? '2m' : difficulty === '4x4' ? '5m' : '10m'}</Text>
-            <Text style={[styles.targetItem, { color: t.textDim }]}>⭐⭐ {'<'} {difficulty === '3x3' ? '1m' : difficulty === '4x4' ? '2.5m' : '5m'}</Text>
-            <Text style={[styles.targetItem, { color: t.textDim }]}>⭐⭐⭐ {'<'} {difficulty === '3x3' ? '30d' : difficulty === '4x4' ? '1m' : '2m'}</Text>
+            <Text style={[styles.targetItem, { color: t.textDim }]}>⭐ {'<'} {{ '3x3': '2m', '4x4': '5m', '5x5': '10m', '6x6': '15m', '7x7': '20m' }[difficulty]}</Text>
+            <Text style={[styles.targetItem, { color: t.textDim }]}>⭐⭐ {'<'} {{ '3x3': '1m', '4x4': '2.5m', '5x5': '5m', '6x6': '7.5m', '7x7': '10m' }[difficulty]}</Text>
+            <Text style={[styles.targetItem, { color: t.textDim }]}>⭐⭐⭐ {'<'} {{ '3x3': '30d', '4x4': '1m', '5x5': '2m', '6x6': '3m', '7x7': '4m' }[difficulty]}</Text>
           </View>
         </View>
 

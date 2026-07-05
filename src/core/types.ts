@@ -1,9 +1,11 @@
-export type Difficulty = '3x3' | '4x4' | '5x5';
+export type Difficulty = '3x3' | '4x4' | '5x5' | '6x6' | '7x7';
 
 export const GRID_SIZES: Record<Difficulty, number> = {
   '3x3': 3,
   '4x4': 4,
   '5x5': 5,
+  '6x6': 6,
+  '7x7': 7,
 };
 
 export interface Tile {

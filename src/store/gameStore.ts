@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Difficulty, GRID_SIZES, HistoryEntry, PuzzleState } from '../core/types';
 import { shufflePuzzle, moveTile } from '../core/puzzle';
+import { checkUnlocked } from '../core/achievements';
 
 type ThemeMode = 'dark' | 'light';
 
@@ -21,14 +22,19 @@ interface GameStore {
   history: HistoryEntry[];
   bestTimes: Record<Difficulty, number | null>;
 
+  // Achievements
+  unlockedAchievements: string[];
+  newAchievement: string | null;
+
   // Actions
   setDifficulty: (d: Difficulty) => void;
   startGame: (imageUri: string, tileUris: string[]) => void;
-  tap: (row: number, col: number) => boolean; // returns true if moved
+  tap: (row: number, col: number) => boolean;
   reset: () => void;
   addHistory: (entry: HistoryEntry) => void;
   toggleTheme: () => void;
   toggleNumbers: () => void;
+  dismissAchievement: () => void;
 }
 
 export const useGameStore = create<GameStore>()(
@@ -41,7 +47,9 @@ export const useGameStore = create<GameStore>()(
       themeMode: 'dark',
       showNumbers: false,
       history: [],
-      bestTimes: { '3x3': null, '4x4': null, '5x5': null },
+      bestTimes: { '3x3': null, '4x4': null, '5x5': null, '6x6': null, '7x7': null },
+      unlockedAchievements: [],
+      newAchievement: null,
 
       setDifficulty: (d) => set({ difficulty: d }),
 
@@ -79,14 +87,20 @@ export const useGameStore = create<GameStore>()(
       },
 
       addHistory: (entry) => {
-        const { history, bestTimes } = get();
+        const { history, bestTimes, unlockedAchievements } = get();
         const newHistory = [entry, ...history].slice(0, 50);
         const current = bestTimes[entry.difficulty];
         const newBest =
           current === null || entry.timeMs < current ? entry.timeMs : current;
+        const updatedBest = { ...bestTimes, [entry.difficulty]: newBest };
+        // Check new achievements
+        const newAchs = checkUnlocked(newHistory, updatedBest, unlockedAchievements);
+        const unlocked = [...unlockedAchievements, ...newAchs.map((a) => a.id)];
         set({
           history: newHistory,
-          bestTimes: { ...bestTimes, [entry.difficulty]: newBest },
+          bestTimes: updatedBest,
+          unlockedAchievements: unlocked,
+          newAchievement: newAchs.length > 0 ? newAchs[0].id : null,
         });
       },
 
@@ -97,6 +111,8 @@ export const useGameStore = create<GameStore>()(
       toggleNumbers: () => {
         set((s) => ({ showNumbers: !s.showNumbers }));
       },
+
+      dismissAchievement: () => set({ newAchievement: null }),
     }),
     {
       name: 'puzzle-game-store',
@@ -107,6 +123,7 @@ export const useGameStore = create<GameStore>()(
         difficulty: state.difficulty,
         themeMode: state.themeMode,
         showNumbers: state.showNumbers,
+        unlockedAchievements: state.unlockedAchievements,
       }),
     }
   )

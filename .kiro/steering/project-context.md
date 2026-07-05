@@ -141,6 +141,30 @@ Type: `feat` `fix` `refactor` `chore` `docs`
 
 ## Roadmap
 
-- [ ] Animasi slide tile (Animated API)
+- [x] Animasi slide tile (Animated.spring) — Juli 2026
+- [x] Custom grid 6×6 / 7×7 — Juli 2026
+- [x] Achievements (12 badge) — Juli 2026
 - [ ] Share puzzle ke teman
 - [ ] Daily puzzle (foto sample baru setiap hari)
+
+---
+
+## Fitur Baru (Juli 2026)
+
+### Slide Animation
+- Tile bergeser smooth via `Animated.spring` (tension:180, friction:15)
+- Setiap tile punya persistent `Animated.Value` untuk x/y
+- Animasi trigger setiap kali posisi tile berubah (dari `puzzle.tiles`)
+
+### Custom Grid (6×6, 7×7)
+- `Difficulty` type diperluas: `'6x6' | '7x7'`
+- `GRID_SIZES` dan `stars.ts` targets ditambah untuk kedua difficulty
+- HomeScreen picker menampilkan 5 opsi (Expert 🟣, Insane ⚫)
+- `bestTimes` store diperluas
+
+### Achievements (12 badges)
+- `src/core/achievements.ts`: First Solve, Puzzle Lover (5), Master (20), Legend (50)
+- Speed Demon per difficulty (3×3<30s, 4×4<1m, 5×5<2m)
+- Expert Mode (solve 6×6), Insane Mode (solve 7×7)
+- Perfect Run (all 3-star), Efficient (low moves 3×3<15, 4×4<60)
+- `unlockedAchievements` di-persist; popup saat badge baru unlock

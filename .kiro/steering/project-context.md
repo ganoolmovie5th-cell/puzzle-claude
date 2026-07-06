@@ -41,9 +41,9 @@ puzzle-claude/
 ├── src/
 │   ├── core/
 │   │   ├── types.ts     # Difficulty, Tile, PuzzleState, HistoryEntry
-│   │   ├── puzzle.ts    # createSolvedPuzzle, shufflePuzzle, moveTile, isSolved
+│   │   ├── puzzle.ts    # shufflePuzzle, moveTile (internal: createSolvedPuzzle, isSolved)
 │   │   ├── image.ts     # prepareImage (resize square), sliceImage (crop grid parallel)
-│   │   ├── haptics.ts   # hapticTap, hapticSuccess, hapticError (expo-haptics)
+│   │   ├── haptics.ts   # hapticTap, hapticSuccess (expo-haptics)
 │   │   ├── theme.ts     # Theme type, darkTheme, lightTheme
 │   │   └── stars.ts     # getStars (timer challenge rating)
 │   ├── store/

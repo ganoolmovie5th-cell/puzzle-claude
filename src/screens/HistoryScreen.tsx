@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   FlatList,
   Image,
+  Alert,
 } from 'react-native';
 import { useGameStore } from '../store/gameStore';
 import { darkTheme, lightTheme, Theme } from '../core/theme';
@@ -18,8 +19,19 @@ interface Props {
 }
 
 export default function HistoryScreen({ onBack }: Props) {
-  const { history, bestTimes, themeMode } = useGameStore();
+  const { history, bestTimes, themeMode, clearHistory } = useGameStore();
   const t: Theme = themeMode === 'dark' ? darkTheme : lightTheme;
+
+  const handleClear = () => {
+    Alert.alert(
+      'Hapus Riwayat',
+      'Semua riwayat game, best time, dan achievements akan dihapus. Lanjutkan?',
+      [
+        { text: 'Batal', style: 'cancel' },
+        { text: 'Hapus', style: 'destructive', onPress: clearHistory },
+      ]
+    );
+  };
 
   const formatTime = (ms: number) => {
     const s = Math.floor(ms / 1000);
@@ -68,7 +80,18 @@ export default function HistoryScreen({ onBack }: Props) {
           <Text style={[styles.backText, { color: t.text }]}>←</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: t.text }]}>Riwayat</Text>
-        <View style={{ width: 42 }} />
+        {history.length > 0 ? (
+          <TouchableOpacity
+            onPress={handleClear}
+            style={[styles.backBtn, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}
+            accessibilityRole="button"
+            accessibilityLabel="Hapus riwayat"
+          >
+            <Text style={{ fontSize: 16 }}>🗑️</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 42 }} />
+        )}
       </View>
 
       {/* Best times summary */}

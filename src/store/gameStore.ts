@@ -35,6 +35,7 @@ interface GameStore {
   toggleTheme: () => void;
   toggleNumbers: () => void;
   dismissAchievement: () => void;
+  clearHistory: () => void;
 }
 
 export const useGameStore = create<GameStore>()(
@@ -113,6 +114,12 @@ export const useGameStore = create<GameStore>()(
       },
 
       dismissAchievement: () => set({ newAchievement: null }),
+
+      clearHistory: () => set({
+        history: [],
+        bestTimes: { '3x3': null, '4x4': null, '5x5': null, '6x6': null, '7x7': null },
+        unlockedAchievements: [],
+      }),
     }),
     {
       name: 'puzzle-game-store',

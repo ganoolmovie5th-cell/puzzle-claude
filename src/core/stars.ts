@@ -18,9 +18,3 @@ export function getStars(difficulty: Difficulty, timeMs: number): number {
   return 0;
 }
 
-export function getTargetTime(difficulty: Difficulty, stars: number): number {
-  const targets = TARGETS[difficulty];
-  if (stars >= 3) return targets[2];
-  if (stars >= 2) return targets[1];
-  return targets[0];
-}

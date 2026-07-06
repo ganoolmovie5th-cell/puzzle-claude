@@ -3,7 +3,7 @@ import { Tile, PuzzleState } from './types';
 /**
  * Create a solved puzzle state
  */
-export function createSolvedPuzzle(gridSize: number): PuzzleState {
+function createSolvedPuzzle(gridSize: number): PuzzleState {
   const total = gridSize * gridSize;
   const tiles: Tile[] = [];
   for (let i = 0; i < total; i++) {
@@ -22,7 +22,7 @@ export function createSolvedPuzzle(gridSize: number): PuzzleState {
 /**
  * Check if puzzle is solved (all tiles at their correct positions)
  */
-export function isSolved(tiles: Tile[], gridSize: number): boolean {
+function isSolved(tiles: Tile[], gridSize: number): boolean {
   for (let i = 0; i < tiles.length - 1; i++) {
     const t = tiles[i];
     const expectedRow = Math.floor(t.id / gridSize);

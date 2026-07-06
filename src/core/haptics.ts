@@ -7,7 +7,3 @@ export function hapticTap() {
 export function hapticSuccess() {
   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 }
-
-export function hapticError() {
-  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-}

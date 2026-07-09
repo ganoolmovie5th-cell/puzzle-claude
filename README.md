@@ -18,6 +18,7 @@ Game puzzle sliding mobile — ambil foto dari kamera atau galeri, lalu susun ke
 - **Slide Animation** — tile bergeser smooth dengan spring animation
 - **Achievements** — 12 badge (speed demon, efficient, expert mode, dll)
 - **Best Time** — tersimpan per difficulty
+- **🔗 Puzzle dari URL** — paste URL gambar dari internet untuk dijadikan puzzle
 
 ## Tech Stack
 

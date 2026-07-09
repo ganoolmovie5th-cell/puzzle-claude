@@ -144,12 +144,20 @@ Type: `feat` `fix` `refactor` `chore` `docs`
 - [x] Animasi slide tile (Animated.spring) — Juli 2026
 - [x] Custom grid 6×6 / 7×7 — Juli 2026
 - [x] Achievements (12 badge) — Juli 2026
+- [x] Puzzle dari URL (download + existing pipeline) — Juli 2026
 - [ ] Share puzzle ke teman
 - [ ] Daily puzzle (foto sample baru setiap hari)
 
 ---
 
 ## Fitur Baru (Juli 2026)
+
+### Puzzle dari URL
+- `src/screens/HomeScreen.tsx`: tombol "🔗 Dari URL" + modal TextInput
+- Download via `expo-file-system` (`File.downloadFileAsync` API baru SDK 54) ke cache
+- Validasi URL (harus http/https), error handling (Alert jika gagal)
+- Setelah download, alur sama: `prepareImage(localUri, 600)` → `sliceImage` → `startGame`
+- Loading indicator saat download + saat memotong
 
 ### Slide Animation
 - Tile bergeser smooth via `Animated.spring` (tension:180, friction:15)

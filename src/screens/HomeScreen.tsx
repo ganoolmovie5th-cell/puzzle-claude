@@ -8,8 +8,13 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { File, Paths } from 'expo-file-system';
 import { useGameStore } from '../store/gameStore';
 import { Difficulty, GRID_SIZES } from '../core/types';
 import { prepareImage, sliceImage } from '../core/image';
@@ -37,6 +42,9 @@ export default function HomeScreen({ onStart, onHistory }: Props) {
     history, themeMode, toggleTheme, showNumbers, toggleNumbers,
   } = useGameStore();
   const [loading, setLoading] = React.useState(false);
+  const [urlModalVisible, setUrlModalVisible] = React.useState(false);
+  const [urlInput, setUrlInput] = React.useState('');
+  const [downloading, setDownloading] = React.useState(false);
   const t: Theme = themeMode === 'dark' ? darkTheme : lightTheme;
 
   const pickImage = async (source: 'camera' | 'gallery') => {
@@ -74,6 +82,38 @@ export default function HomeScreen({ onStart, onHistory }: Props) {
       const msg = e instanceof Error ? e.message : 'Unknown error';
       Alert.alert('Gagal memproses gambar', msg);
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const pickImageFromUrl = async () => {
+    const url = urlInput.trim();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      Alert.alert('URL tidak valid', 'URL harus dimulai dengan http:// atau https://');
+      return;
+    }
+
+    setDownloading(true);
+    try {
+      const fileName = `puzzle_url_${Date.now()}.jpg`;
+      const destination = new File(Paths.cache, fileName);
+      const downloaded = await File.downloadFileAsync(url, destination);
+      const localUri = downloaded.uri;
+
+      setUrlModalVisible(false);
+      setUrlInput('');
+      setLoading(true);
+
+      const prepared = await prepareImage(localUri, IMAGE_SIZE);
+      const gridSize = GRID_SIZES[difficulty];
+      const tiles = await sliceImage(prepared, gridSize, IMAGE_SIZE);
+      startGame(prepared, tiles);
+      onStart();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Gagal mengunduh gambar';
+      Alert.alert('Gagal', msg);
+    } finally {
+      setDownloading(false);
       setLoading(false);
     }
   };
@@ -221,6 +261,20 @@ export default function HomeScreen({ onStart, onHistory }: Props) {
           </View>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={[styles.btn, { backgroundColor: t.surface, borderWidth: 1.5, borderColor: t.accent }]}
+          onPress={() => { hapticTap(); setUrlModalVisible(true); }}
+          disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel="Puzzle dari URL gambar"
+        >
+          <Text style={styles.btnIcon}>🔗</Text>
+          <View style={styles.btnTextWrap}>
+            <Text style={[styles.btnTitle, { color: t.text }]}>Dari URL</Text>
+            <Text style={[styles.btnDesc, { color: t.textMuted }]}>Paste URL gambar dari internet</Text>
+          </View>
+        </TouchableOpacity>
+
         {loading && (
           <View style={styles.loadingWrap}>
             <ActivityIndicator size="small" color={t.accent} />
@@ -228,6 +282,69 @@ export default function HomeScreen({ onStart, onHistory }: Props) {
           </View>
         )}
       </ScrollView>
+
+      {/* URL Modal */}
+      <Modal
+        visible={urlModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setUrlModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={[styles.modalContent, { backgroundColor: t.surface, borderColor: t.surfaceBorder }]}>
+            <Text style={[styles.modalTitle, { color: t.text }]}>🔗 Puzzle dari URL</Text>
+            <Text style={[styles.modalSubtitle, { color: t.textMuted }]}>
+              Paste URL gambar (jpg, png, webp)
+            </Text>
+
+            <TextInput
+              style={[styles.urlInput, { backgroundColor: t.bg, color: t.text, borderColor: t.surfaceBorder }]}
+              placeholder="https://example.com/foto.jpg"
+              placeholderTextColor={t.textDim}
+              value={urlInput}
+              onChangeText={setUrlInput}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              returnKeyType="go"
+              onSubmitEditing={pickImageFromUrl}
+              editable={!downloading}
+              accessibilityLabel="Input URL gambar"
+            />
+
+            {downloading && (
+              <View style={styles.loadingWrap}>
+                <ActivityIndicator size="small" color={t.accent} />
+                <Text style={[styles.loadingText, { color: t.accent }]}>Mengunduh gambar...</Text>
+              </View>
+            )}
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: t.bg, borderColor: t.surfaceBorder, borderWidth: 1 }]}
+                onPress={() => { setUrlModalVisible(false); setUrlInput(''); }}
+                disabled={downloading}
+                accessibilityRole="button"
+                accessibilityLabel="Batal"
+              >
+                <Text style={[styles.modalBtnText, { color: t.textMuted }]}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: t.accent }]}
+                onPress={pickImageFromUrl}
+                disabled={downloading || !urlInput.trim()}
+                accessibilityRole="button"
+                accessibilityLabel="Mulai puzzle dari URL"
+              >
+                <Text style={[styles.modalBtnText, { color: '#fff' }]}>Mulai</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -264,4 +381,12 @@ const styles = StyleSheet.create({
   btnDesc: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
   loadingWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 16 },
   loadingText: { fontSize: 14 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 },
+  modalContent: { borderRadius: 20, padding: 24, borderWidth: 1 },
+  modalTitle: { fontSize: 20, fontWeight: '800', marginBottom: 4 },
+  modalSubtitle: { fontSize: 13, marginBottom: 16 },
+  urlInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, marginBottom: 16 },
+  modalActions: { flexDirection: 'row', gap: 10 },
+  modalBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  modalBtnText: { fontSize: 15, fontWeight: '700' },
 });

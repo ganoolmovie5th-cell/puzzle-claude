@@ -6,7 +6,8 @@
     "start": "npx expo start",
     "android": "npx expo start --android",
     "ios": "npx expo start --ios",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "postinstall": "rm -f node_modules/expo-file-system/tsconfig.json"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.1.2",

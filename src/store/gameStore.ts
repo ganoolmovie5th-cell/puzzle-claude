@@ -14,6 +14,10 @@ interface GameStore {
   imageUri: string | null;
   tileUris: string[];
 
+  // Undo/Redo
+  undoStack: PuzzleState[];
+  redoStack: PuzzleState[];
+
   // Settings
   themeMode: ThemeMode;
   showNumbers: boolean;
@@ -30,6 +34,9 @@ interface GameStore {
   setDifficulty: (d: Difficulty) => void;
   startGame: (imageUri: string, tileUris: string[]) => void;
   tap: (row: number, col: number) => boolean;
+  undo: () => void;
+  redo: () => void;
+  hint: () => number[];
   reset: () => void;
   addHistory: (entry: HistoryEntry) => void;
   toggleTheme: () => void;
@@ -45,6 +52,8 @@ export const useGameStore = create<GameStore>()(
       difficulty: '3x3',
       imageUri: null,
       tileUris: [],
+      undoStack: [],
+      redoStack: [],
       themeMode: 'dark',
       showNumbers: false,
       history: [],
@@ -57,16 +66,16 @@ export const useGameStore = create<GameStore>()(
       startGame: (imageUri, tileUris) => {
         const gridSize = GRID_SIZES[get().difficulty];
         const puzzle = shufflePuzzle(gridSize);
-        set({ puzzle, imageUri, tileUris });
+        set({ puzzle, imageUri, tileUris, undoStack: [], redoStack: [] });
       },
 
       tap: (row, col) => {
-        const { puzzle } = get();
+        const { puzzle, undoStack } = get();
         if (!puzzle || puzzle.solved) return false;
         const next = moveTile(puzzle, row, col);
         if (!next) return false;
 
-        set({ puzzle: next });
+        set({ puzzle: next, undoStack: [...undoStack, puzzle], redoStack: [] });
         if (next.solved) {
           const timeMs = Date.now() - next.startTime;
           const { difficulty, imageUri } = get();
@@ -81,10 +90,39 @@ export const useGameStore = create<GameStore>()(
         return true;
       },
 
+      undo: () => {
+        const { puzzle, undoStack, redoStack } = get();
+        if (!puzzle || undoStack.length === 0) return;
+        set({ puzzle: undoStack[undoStack.length - 1], undoStack: undoStack.slice(0, -1), redoStack: [...redoStack, puzzle] });
+      },
+
+      redo: () => {
+        const { puzzle, redoStack, undoStack } = get();
+        if (!puzzle || redoStack.length === 0) return;
+        set({ puzzle: redoStack[redoStack.length - 1], redoStack: redoStack.slice(0, -1), undoStack: [...undoStack, puzzle] });
+      },
+
+      hint: () => {
+        const { puzzle } = get();
+        if (!puzzle) return [];
+        const empty = puzzle.tiles[puzzle.emptyIndex];
+        const adjacent: number[] = [];
+        const { gridSize } = puzzle;
+        const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+        for (const [dr, dc] of dirs) {
+          const r = empty.row + dr, c = empty.col + dc;
+          if (r >= 0 && r < gridSize && c >= 0 && c < gridSize) {
+            const tile = puzzle.tiles.find(t => t.row === r && t.col === c);
+            if (tile) adjacent.push(tile.id);
+          }
+        }
+        return adjacent;
+      },
+
       reset: () => {
         const gridSize = GRID_SIZES[get().difficulty];
         const puzzle = shufflePuzzle(gridSize);
-        set({ puzzle });
+        set({ puzzle, undoStack: [], redoStack: [] });
       },
 
       addHistory: (entry) => {

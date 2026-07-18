@@ -7,9 +7,10 @@ Game puzzle sliding mobile — ambil foto dari kamera atau galeri, lalu susun ke
 - **Kamera & Galeri** — pakai foto sendiri sebagai puzzle
 - **3 Tingkat Kesulitan** — 3×3 (Mudah), 4×4 (Sedang), 5×5 (Sulit)
 - **Expert Mode** — 6×6 dan 7×7 untuk pemain advanced
+- **Undo/Redo** — batalkan atau ulangi langkah sebelumnya (per game session)
+- **Hint System** — highlight tile mana yang bisa digeser ke slot kosong
 - **Timer & Move Counter** — lacak performa kamu
 - **Star Rating** — bintang 1-3 berdasarkan kecepatan penyelesaian
-- **Move Hint** — highlight tile yang bisa digeser
 - **Numbered Tiles** — angka di pojok tile untuk orientasi
 - **Haptic Feedback** — getaran saat geser dan saat selesai
 - **Preview Mode** — lihat gambar asli sebagai hint

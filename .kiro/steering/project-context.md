@@ -4,6 +4,8 @@
 
 Game puzzle sliding mobile. Pengguna ambil foto dari kamera atau galeri, gambar dipotong menjadi grid (3×3 / 4×4 / 5×5), lalu diacak. Geser tile untuk menyusun ulang gambar ke posisi semula.
 
+**Juli 2026 Update:** Undo/Redo + Hint system added to store.
+
 - **Repo:** puzzle-claude
 - **Branch:** `main` (push langsung)
 - **Stack:** React Native + Expo SDK 54 + TypeScript strict

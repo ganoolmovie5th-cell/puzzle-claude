@@ -73,6 +73,10 @@ src/
     └── HistoryScreen.tsx  # Riwayat game
 ```
 
+## Code Cleanup (Juli 2026)
+
+`formatTime` utility extracted to `src/utils/time.ts` — removes duplicates from PuzzleScreen & HistoryScreen (commit: Extract formatTime to shared utils across puzzle screens).
+
 ## License
 
 MIT

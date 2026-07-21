@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { formatTime } from '../utils/time';
 import * as ImagePicker from 'expo-image-picker';
 import { File, Paths } from 'expo-file-system';
 import { useGameStore } from '../store/gameStore';
@@ -116,13 +117,6 @@ export default function HomeScreen({ onStart, onHistory }: Props) {
       setDownloading(false);
       setLoading(false);
     }
-  };
-
-  const formatTime = (ms: number | null) => {
-    if (ms === null) return '-';
-    const s = Math.floor(ms / 1000);
-    const m = Math.floor(s / 60);
-    return `${m}:${String(s % 60).padStart(2, '0')}`;
   };
 
   const bestTime = bestTimes[difficulty];

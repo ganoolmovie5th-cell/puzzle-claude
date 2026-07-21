@@ -178,3 +178,11 @@ Type: `feat` `fix` `refactor` `chore` `docs`
 - Expert Mode (solve 6×6), Insane Mode (solve 7×7)
 - Perfect Run (all 3-star), Efficient (low moves 3×3<15, 4×4<60)
 - `unlockedAchievements` di-persist; popup saat badge baru unlock
+
+---
+
+## Code Cleanup (Juli 2026)
+
+`formatTime` utility extracted to `src/utils/time.ts` — removes duplicates from `PuzzleScreen` & `HistoryScreen`. Kedua screen sekarang import dari shared location. Behavior-preserving, hanya dedup.
+
+**Commit:** `Extract formatTime to shared utils across puzzle screens`

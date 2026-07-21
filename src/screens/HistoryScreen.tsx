@@ -13,6 +13,7 @@ import { useGameStore } from '../store/gameStore';
 import { darkTheme, lightTheme, Theme } from '../core/theme';
 import { getStars } from '../core/stars';
 import { HistoryEntry } from '../core/types';
+import { formatTime } from '../utils/time';
 
 interface Props {
   onBack: () => void;
@@ -31,12 +32,6 @@ export default function HistoryScreen({ onBack }: Props) {
         { text: 'Hapus', style: 'destructive', onPress: clearHistory },
       ]
     );
-  };
-
-  const formatTime = (ms: number) => {
-    const s = Math.floor(ms / 1000);
-    const m = Math.floor(s / 60);
-    return `${m}:${String(s % 60).padStart(2, '0')}`;
   };
 
   const formatDate = (ts: number) => {

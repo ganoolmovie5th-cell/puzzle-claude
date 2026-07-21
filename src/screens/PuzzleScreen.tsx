@@ -16,6 +16,7 @@ import { darkTheme, lightTheme, Theme } from '../core/theme';
 import { getStars } from '../core/stars';
 import { hapticTap, hapticSuccess } from '../core/haptics';
 import { ACHIEVEMENTS } from '../core/achievements';
+import { formatTime } from '../utils/time';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const BOARD_PADDING = 16;
@@ -80,12 +81,6 @@ export default function PuzzleScreen({ onBack }: Props) {
   const handleTap = (row: number, col: number) => {
     const moved = tap(row, col);
     if (moved) hapticTap();
-  };
-
-  const formatTime = (ms: number) => {
-    const s = Math.floor(ms / 1000);
-    const m = Math.floor(s / 60);
-    return `${m}:${String(s % 60).padStart(2, '0')}`;
   };
 
   const stars = solved ? getStars(difficulty, elapsed) : 0;

@@ -2,7 +2,7 @@
 
 Game puzzle sliding mobile. Ambil foto dari kamera atau galeri, lalu susun kembali potongannya. Support 3x3 hingga 7x7.
 
-**Tech Stack:** React Native · Expo SDK 54 · TypeScript · Zustand · expo-image-picker · expo-haptics
+**Tech Stack:** React Native · Expo SDK 58 · TypeScript · Zustand · expo-image-picker · expo-haptics
 
 ## Features
 

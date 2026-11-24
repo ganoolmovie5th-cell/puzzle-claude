@@ -6,12 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#1a1a2e"
-    },
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
@@ -29,6 +23,17 @@
       "eas": {
         "projectId": ""
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#1a1a2e"
+        }
+      ],
+      "expo-status-bar"
+    ]
   }
 }

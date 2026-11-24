@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
   numberText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   hintOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(74,222,128,0.2)',
     justifyContent: 'center',
     alignItems: 'center',

@@ -21,7 +21,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": ""
+        "projectId": "d252fe8f-d940-4258-9db9-4de113e37cf1"
       }
     },
     "plugins": [
@@ -34,6 +34,13 @@
         }
       ],
       "expo-status-bar"
-    ]
+    ],
+    "owner": "ganoolmovie5th",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/d252fe8f-d940-4258-9db9-4de113e37cf1"
+    }
   }
 }
